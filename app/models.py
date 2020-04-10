@@ -32,6 +32,7 @@ class Teacher(db.Model):
     birthDate = db.Column(db.DateTime)
     birthPlace = db.Column(db.String(64))
     familyStatus = db.Column(db.Boolean)
+    region_id = db.Column(db.Integer, db.ForeignKey('region.id'))
     address = db.Column(db.String(64))
     idnp = db.Column(db.String(64), unique=True)
     series = db.Column(db.String(64))
@@ -42,6 +43,11 @@ class Teacher(db.Model):
     email = db.Column(db.String(64))
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
     speciality_id = db.Column(db.Integer, db.ForeignKey('speciality.id'))
+    profession_id = db.Column(db.Integer, db.ForeignKey('profession.id'))
+    grade_id = db.Column(db.Integer, db.ForeignKey('grade.id'))
+    nr_stage_years = db.Column(db.Integer)
+    paid = db.Column(db.Boolean)
+    filesPath = db.relationship('filePath', backref='region', lazy='dynamic')
 
     def __repr__(self):
         return '<name {} nationality {}>'.format(self.name, self.nationality_id)
@@ -75,10 +81,14 @@ class Group(db.Model):
         return self.speciality
 
     def update(self, name, speciality_id, course, status):
-        self.name = name
-        self.speciality_id = speciality_id
-        self.course = course
-        self.status = status
+        if name is not None:
+            self.name = name
+        if speciality_id is not None:
+            self.speciality_id = speciality_id
+        if course is not None:
+            self.course = course
+        if status is not None:
+            self.status = status
         
         db.session.commit()
 
@@ -107,13 +117,52 @@ class Speciality(db.Model):
         return self.group.all()
 
     def update(self, name, nrYears, nrCredits, english):
-        self.name = name
-        self.nr_study_years = nrYears
-        self.nr_credits = nrCredits
-        self.english = english
+        if name:
+            self.name = name
+        if nrYears:
+            self.nr_study_years = nrYears
+        if nrCredits:
+            self.nr_credits = nrCredits
+            print(nrCredits)
+        if english:
+            self.english = english
+            print(english)
 
         db.session.commit()
 
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+
+class Profession(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    teacher = db.relationship('Teacher', backref='profession', lazy='dynamic')
+
+
+class Grade(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    teacher = db.relationship('Teacher', backref='grade', lazy='dynamic')
+
+
+class Region(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    teacher = db.relationship('Teacher', backref='region', lazy='dynamic')
+
+class filePath(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    path = db.Column(db.String)
+    fileType = db.Column(db.String(64))
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'))
+
+
+class Users(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    login = db.Column(db.String(64))
+    password = db.Column(db.String(64))
+    role = db.Column(db.String(64))
+    

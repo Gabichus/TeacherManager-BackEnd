@@ -1,29 +1,29 @@
 from app import app, api, db
 from flask_restful import Api, Resource, reqparse
-from app.models import Teacher as Tc, Nationality as Nat, Group as Gr, Speciality as Sp
+from app.models import Grade as gradeModel
 from sqlalchemy import asc
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity, get_jwt_claims
 )
 
-
-class NationalityList(Resource):
-    @jwt_required
+class GradeList(Resource):
     def get(self):
-        return getAllNationality()
+        gr = gradeModel.query.all()
+        allGr = [{'id': g.id, "name":g.name} for g in gr]
+        return allGr
 
 
-class Nationality(Resource):
+class Grade(Resource):
     @jwt_required
     def get(self, id):
-        nat = Nat.query.get(id)
-        if nat:
-            return {
-                'name': nat.name
+        gr = gradeModel.query.get(id)
+
+        if gr:
+            return{
+                'id':gr.id,
+                'name':gr.name
             }
-        else:
-            return None
 
     @jwt_required
     def post(self):
@@ -38,13 +38,10 @@ class Nationality(Resource):
 
         name = parser.parse_args()['name']
 
-        nat = Nat(name=name)
-        if not nat.isExist():
-            db.session.add(nat)
-            db.session.commit()
-
-        return getAllNationality()
-
+        gr = gradeModel(name = name)
+        db.session.add(gr)
+        db.session.commit()
+        
     @jwt_required
     def patch(self, id):
 
@@ -53,17 +50,20 @@ class Nationality(Resource):
         if not (claims['role'] == 'admin' or claims['role'] == 'moderator'):
             return None
 
+        gr = gradeModel.query.get(id)
+
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
 
         name = parser.parse_args()['name']
 
-        nat = Nat.query.get(id)
-        if nat:
-            nat.update(name)
-        
-        return getAllNationality()
+        if gr:
+            gr.name = name
+            db.session.commit()
 
+        allGr = [{'id': x.id, 'name':x.name} for x in gradeModel.query.order_by(asc(gradeModel.id))]
+
+        return allGr
 
     @jwt_required
     def delete(self, id):
@@ -73,13 +73,13 @@ class Nationality(Resource):
         if claims['role'] != 'admin':
             return None
 
-        nat = Nat.query.get(id)
-        if nat:
-            nat.delete()
+        gr = gradeModel.query.get(id)
+        if not gr:
+            return None
 
-        return getAllNationality()
+        db.session.delete(gr)
+        db.session.commit()
 
-def getAllNationality():
-    nat = Nat.query.order_by(asc(Nat.id)).all()
-    allNat = [{'id': n.id, 'name': n.name} for n in nat]
-    return allNat
+        allGr = [{'id': x.id, 'name':x.name} for x in gradeModel.query.order_by(asc(gradeModel.id))]
+
+        return allGr
